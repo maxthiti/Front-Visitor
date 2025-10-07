@@ -1,0 +1,31 @@
+{
+  "name": "front-visitor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy:production": "scp -r dist/* root@192.168.123.155:/var/www/lprvisitor"
+  },
+  "dependencies": {
+    "@fawmi/vue-google-maps": "^0.9.79",
+    "axios": "^1.9.0",
+    "daisyui": "^4.12.24",
+    "lucide-vue-next": "^0.511.0",
+    "pinia": "^3.0.2",
+    "socket.io-client": "^4.8.1",
+    "sweetalert2": "^11.21.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1",
+    "vue-signature-pad": "^3.0.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.3.5"
+  }
+}
