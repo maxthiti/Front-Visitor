@@ -1,6 +1,8 @@
 
 import { createApp } from 'vue'
 import './assets/tailwind.css'
+import DatePicker from 'vue-datepicker-next';
+import 'vue-datepicker-next/index.css';
 import App from './App.vue'
 import router from './routes'
 import { createPinia } from 'pinia'
