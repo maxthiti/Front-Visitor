@@ -23,8 +23,8 @@ export class ResidentService {
             });
             return response.data; 
         } catch (error) {
-            console.error("Error fetching resident info:", error);
-            throw error; 
+            console.error("Error fetching resident info:", error.response?.data || error.message || error);
+            throw (error.response?.data || error); 
         }
     }
 }

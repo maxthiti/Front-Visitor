@@ -8,7 +8,7 @@ export class vehicleService {
     }
 
     async AddDevice(sendData) {
-        // let data = null;
+        let data = null;
 
         let config = {
             method: "post",
@@ -38,7 +38,7 @@ export class vehicleService {
         let config = {
             method: "get",
             maxBodyLength: Infinity,
-            url: `${this.baseUrl}api/v1/device/park/${parkId}`,
+            url: `${this.baseUrl}lpr/api/v1/device/park/${parkId}`,
             headers: {
                 Authorization: `Bearer ${this.token}`,
             },

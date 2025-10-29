@@ -109,22 +109,9 @@ export default {
             this.tokenInfo = this.loginService.checkToken(this.token);
 
             if (!this.tokenInfo.hasPhone) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('residentAvatar');
-                localStorage.removeItem('residentName');
-
-                this.message = 'โปรดเข้าสู่ระบบผ่าน LINE อีกครั้ง';
-                this.tokenInfo = { hasPhone: false, phone: null };
-
-                if (LINE_LOGIN_URL) {
-                    setTimeout(() => {
-                        window.location.href = LINE_LOGIN_URL;
-                    }, 1500);
-                } else {
-                    console.error("เกิดข้อผิดพลาดโปรดเข้าสู่ระบบผ่าน LINE อีกครั้งในภายหลัง");
-                }
-
-                return;
+                this.message = 'โปรดกรอกเบอร์โทรศัพท์เพื่อยืนยันตัวตน';
+                this.tokenInfo = { hasPhone: false, phone: null }; 
+                return; 
             }
 
             if (this.tokenInfo.name) {
@@ -172,7 +159,6 @@ export default {
 
                     Swal.fire('สำเร็จ!', 'บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว', 'success');
 
-                    // update axios default header and auth store so app state refreshes
                     try {
                         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
                     } catch (e) { }
