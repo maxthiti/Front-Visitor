@@ -13,7 +13,7 @@ export class vehicleService {
         let config = {
             method: "post",
             maxBodyLength: Infinity,
-            url: `${this.baseUrl}api/v1/addvehicle`,
+            url: `${this.baseUrl}lpr/api/v1/addvehicle`,
             headers: {
                 Authorization: `Bearer ${this.token}`,
             },
@@ -38,7 +38,7 @@ export class vehicleService {
         let config = {
             method: "get",
             maxBodyLength: Infinity,
-            url: `${this.baseUrl}api/v1/device/park/${parkId}`,
+            url: `${this.baseUrl}lpr/api/v1/device/park/${parkId}`,
             headers: {
                 Authorization: `Bearer ${this.token}`,
             },

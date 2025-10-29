@@ -1,8 +1,5 @@
-// stores/auth.js (ตัวอย่าง)
-// สมมติว่าคุณมีไฟล์ api/index.js ที่มี export Axios instance
-
 import { defineStore } from 'pinia';
-import axios from 'axios'; // สมมติว่าใช้ Axios
+import axios from 'axios';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
