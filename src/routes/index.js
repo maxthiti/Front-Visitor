@@ -8,8 +8,8 @@ import History from "../views/Historylog/Historylog.vue";
 import HomeLayout from "../views/Home.vue";
 
 const routes = [
-  { 
-    path: "/", 
+  {
+    path: "/",
     component: RegisterMember,
   },
   {
@@ -17,11 +17,15 @@ const routes = [
     component: HomeLayout,
     redirect: "/resident-car",
     meta: { requiresAuth: true },
-    children:[
-      { path: "/resident-car", component: ResidentCar, meta: { requiresAuth: true } },
+    children: [
+      {
+        path: "/resident-car",
+        component: ResidentCar,
+        meta: { requiresAuth: true },
+      },
       { path: "/visitor", component: Visitor, meta: { requiresAuth: true } },
       { path: "/history", component: History, meta: { requiresAuth: true } },
-    ]
+    ],
   },
 ];
 
@@ -30,42 +34,26 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
-  
+
   if (!authStore.isAuthenticated && localStorage.getItem("token")) {
-    const initialized = authStore.initializeAuth();
-    if (initialized) {
-      console.log("Auth store initialized successfully");
-    } else {
-      console.log("Auth store initialization failed");
+    try {
+      const initialized = await authStore.initializeAuth();
+      console.log("Auth store initialized:", initialized);
+    } catch (e) {
+      console.warn("Auth initialization error in router guard:", e);
     }
   }
-  
+
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
-      console.log("Not authenticated, redirecting to login");
-      next('/home');
+      console.log("Not authenticated, redirecting to login (root)");
+      next("/");
       return;
     }
-    
-    // if (to.meta.roles && to.meta.roles.length > 0) {
-    //   const userRole = authStore.user.role;
-      
-    //           if (!to.meta.roles.includes(userRole)) {
-    //       console.log("Role not allowed, redirecting");
-    //       if (authStore.isAdmin()) {
-    //         next('/admin/dashboard');
-    //       } else if (authStore.isMember()) {
-    //         next('/');
-    //       } else if (authStore.isPartnerOrAdmin()) {
-    //         next('/dashboardpartner');
-    //       }
-    //       return;
-    //     }
-    // }
   }
-  
+
   next();
 });
 

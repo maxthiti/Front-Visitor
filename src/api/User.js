@@ -30,14 +30,16 @@ export class LoginService {
 
     const FORCE_EXPIRATION_TEST = false;
 
+    const defaultResp = { hasPhone: false, phone: null, expired: false };
+
     if (!payload) {
-      return { hasPhone: false, phone: null };
+      return { ...defaultResp, expired: true };
     }
 
     const currentTime = Date.now() / 1000;
     if (FORCE_EXPIRATION_TEST || (payload.exp && payload.exp < currentTime)) {
       console.error("Token has expired (Forced)");
-      return { hasPhone: false, phone: null };
+      return { ...defaultResp, expired: true };
     }
 
     const name = payload?.displayName;
@@ -49,9 +51,11 @@ export class LoginService {
         phone: payload.phoneNumber,
         name: name,
         avatar: avatar,
+        expired: false,
       };
     }
-    return { hasPhone: false, phone: null };
+
+    return { ...defaultResp, expired: false };
   }
 
   async savePhoneNumber(phoneNumber, token) {

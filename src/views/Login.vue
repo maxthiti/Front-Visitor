@@ -49,6 +49,8 @@
 <script>
 import Swal from 'sweetalert2';
 import { LoginService } from '../api/User';
+import axios from 'axios';
+import { useAuthStore } from '../stores/auth';
 
 export default {
     data() {
@@ -169,6 +171,18 @@ export default {
                     await this.loginService.savePhoneNumber(this.phone, this.token);
 
                     Swal.fire('สำเร็จ!', 'บันทึกเบอร์โทรศัพท์เรียบร้อยแล้ว', 'success');
+
+                    // update axios default header and auth store so app state refreshes
+                    try {
+                        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+                    } catch (e) { }
+
+                    try {
+                        const auth = useAuthStore();
+                        await auth.initializeAuth();
+                    } catch (e) {
+                        console.warn('Failed to re-initialize auth store after saving phone', e);
+                    }
 
                     this.message = 'บันทึกสำเร็จ กำลังนำเข้าหน้าหลัก...';
                     this.$router.push('/home');
