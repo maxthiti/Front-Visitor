@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
+import axios from 'axios'; // สมมติว่าใช้ Axios
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -24,20 +24,18 @@ export const useAuthStore = defineStore('auth', {
             }
 
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            this.token = token;
+            this.isAuthenticated = true;
 
             try {
-                const response = await axios.get('/api/user/me'); 
-                
-                this.user = response.data.user; 
-                this.isAuthenticated = true;
-                return true;
-            } catch (error) {
-                if (error.response && error.response.status === 401) {
-                    console.error("Token expired or invalid during initialization.");
+                const name = localStorage.getItem('residentName');
+                const avatar = localStorage.getItem('residentAvatar');
+                if (name || avatar) {
+                    this.user = { name, avatar };
                 }
-                this.logout();
-                return false;
-            }
+            } catch (_) { }
+
+            return true;
         },
     }
 });
