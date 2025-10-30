@@ -77,7 +77,6 @@
 import Swal from 'sweetalert2'
 import DatePicker from 'vue-datepicker-next';
 import { LicensePlateService } from '../../api/License-plate';
-import { vehicleService } from '../../api/Vehicle';
 
 function formatDate(date) {
     const year = date.getFullYear();
@@ -110,12 +109,10 @@ export default {
             isPermanent: true,
             provinceOpen: false,
             provinceQuery: '',
-            vehicle: new vehicleService(),
-            DeviceData: [],
             vehicleTypes: vehicleTypes,
             selectedVehicleType: vehicleTypes[0],
             provinces: [
-                'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน', 'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุธยา', 'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 'แพร่', 'ภูเก็ต', 'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี', 'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 'อ่างทอง', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
+                'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ชัยนาท', 'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน', 'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุยา', 'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 'แพร่', 'ภูเก็ต', 'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี', 'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี', 'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 'อ่างทอง', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
             ],
             form: {
                 licensePlate: '',
@@ -168,60 +165,6 @@ export default {
             }, 100);
         },
 
-        async getDevice(parkId) {
-            try {
-                const res = await this.vehicle.getDevice(parkId);
-                if (res && res.message == 'get devices successfully' && res.devices.length > 0) {
-                    this.DeviceData = res.devices;
-
-                    const allDeviceIds = res.devices.map(device => device._id);
-                    return allDeviceIds;
-                } else {
-                    this.DeviceData = [];
-                    console.warn(res.message || 'Failed to get devices or no devices found.');
-                    return [];
-                }
-            } catch (error) {
-                console.error('Error in getDevice:', error);
-                this.$swal({
-                    icon: 'error',
-                    title: `เกิดข้อผิดพลาดในการดึงข้อมูลอุปกรณ์!`,
-                    text: error.message,
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                });
-                return [];
-            }
-        },
-        
-        async addDevice(deviceIds, licenseId) {
-            if (deviceIds.length === 0) {
-                console.warn('No deviceId to add.');
-                return false;
-            }
-
-            const payload = {
-                deviceId: deviceIds,
-                licenseId: licenseId,
-                listType: 'fixedlist',
-                requestEntryId: '',
-            };
-
-            try {
-                const response = await this.vehicle.AddDevice(payload);
-                if (response && !response.error) {
-                    return true;
-                }
-                return false;
-            } catch (error) {
-                console.error('Error adding devices to license plate:', error);
-                return false;
-            }
-        },
-
         async submit() {
             this.loading = true;
 
@@ -267,31 +210,12 @@ export default {
                 const res = await svc.createVehicle(payload)
                 console.log('test', res )
 
-                let swalText = 'ทะเบียนรถถูกบันทึกเรียบร้อยแล้ว';
-
                 if (res && res.data && res.data._id) {
-                    
-                    const licenseId = res.data._id;
-                    const parkId = res.data.park;
-
-                    console.log('test', parkId )
-                    const allDeviceIds = await this.getDevice(parkId); 
-                    console.log('test', allDeviceIds )
-                    if (allDeviceIds && allDeviceIds.length > 0) {
-                        const isDeviceAdded = await this.addDevice(allDeviceIds, licenseId);
-                        if (isDeviceAdded) {
-                            swalText += ' และผูกกับอุปกรณ์ควบคุมการเข้าออกสำเร็จ';
-                        } else {
-                            // swalText += ' แต่ผูกกับอุปกรณ์ควบคุมการเข้าออก **ไม่สำเร็จ**';
-                        }
-                    } else {
-                        // swalText += ' แต่ไม่พบอุปกรณ์ควบคุมการเข้าออกใน Park นี้ จึงไม่สามารถผูกอุปกรณ์ได้';
-                    }
                     
                     await Swal.fire({
                         icon: 'success',
                         title: 'บันทึกสำเร็จ',
-                        text: swalText,
+                        text: 'ทะเบียนรถถูกบันทึกเรียบร้อยแล้ว',
                         timer: 2500,
                         showConfirmButton: false
                     })

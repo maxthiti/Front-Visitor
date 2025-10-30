@@ -28,9 +28,9 @@
                 <thead>
                     <tr class="bg-gradient-to-r from-green-200 to-blue-200 text-green-900">
                         <th class="py-3 px-2">ทะเบียน</th>
-                        <th class="py-3 px-2">ประเภท</th>
-                        <th class="py-3 px-2">วันที่เข้า</th>
-                        <th class="py-3 px-2">วันที่ออก</th>
+                        <th class="py-3 px-2">รูป1</th>
+                        <th class="py-3 px-2">รูป2</th>
+                        <th class="py-3 px-2">วันเวลา</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -43,9 +43,20 @@
                     <tr v-else v-for="(record, idx) in licenseRecords" :key="idx"
                         class="border-b hover:bg-orange-50 transition duration-100">
                         <td class="py-2 px-2 break-all max-w-plate">{{ record.plate }}</td>
-                        <td class="py-2 px-2 ">{{ record.type }}</td>
-                        <td class="py-2 px-2 ">{{ record.in }}</td>
-                        <td class="py-2 px-2 ">{{ record.out }}</td>
+
+                        <td class="py-2 px-2">
+                            <button @click.prevent="showFullScreenImage(record.photo1)" v-if="record.photo1"
+                                class="text-blue-500 hover:underline focus:outline-none">ดูรูป</button>
+                            <span v-else>-</span>
+                        </td>
+
+                        <td class="py-2 px-2">
+                            <button @click.prevent="showFullScreenImage(record.photo2)" v-if="record.photo2"
+                                class="text-blue-500 hover:underline focus:outline-none">ดูรูป</button>
+                            <span v-else>-</span>
+                        </td>
+
+                        <td class="py-2 px-2 ">{{ record.time }}</td>
                     </tr>
                     <tr v-if="!loading && licenseRecords.length === 0">
                         <td colspan="4" class="py-4 text-center text-gray-500">
@@ -56,6 +67,20 @@
             </table>
 
         </div>
+
+        <transition name="modal-fade">
+            <div v-if="isModalOpen" @click.self="closeFullScreenImage"
+                class="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+                <div class="relative max-w-full max-h-full">
+                    <button @click="closeFullScreenImage"
+                        class="absolute top-4 right-4 text-white text-3xl font-bold bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center hover:bg-red-600 transition focus:outline-none">
+                        &times;
+                    </button>
+                    <img :src="modalImageUrl" alt="Fullscreen Image" class="max-w-full max-h-screen object-contain"
+                        style="max-height: 95vh; max-width: 95vw;">
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 <script>
@@ -95,6 +120,8 @@ export default {
                     rangeSeparator: ' ถึง '
                 },
             },
+            isModalOpen: false,
+            modalImageUrl: '',
         }
     },
     watch: {
@@ -114,6 +141,7 @@ export default {
     beforeDestroy() {
         window.removeEventListener('resize', this.updateScreenHeight);
     },
+
     methods: {
         getTodayStart() {
             const today = new Date();
@@ -124,6 +152,17 @@ export default {
             const today = new Date();
             const date = today.toISOString().split('T')[0];
             return `${date} 23:59:59`;
+        },
+
+        showFullScreenImage(imageUrl) {
+            if (imageUrl) {
+                this.modalImageUrl = imageUrl;
+                this.isModalOpen = true;
+            }
+        },
+        closeFullScreenImage() {
+            this.isModalOpen = false;
+            this.modalImageUrl = '';
         },
 
         async fetchHistory() {
@@ -150,17 +189,18 @@ export default {
                     this.pagination.page,
                     this.filter.license
                 );
+                console.log("response", response);
 
                 const historyData = response.data || [];
 
                 this.licenseRecords = historyData.map(r => ({
-                    plate: r.licensePlate || r.license,
-                    type: r.vehicleType || 'ไม่ระบุ',
-                    in: this.formatDateTime(r.startTime),
-                    out: this.formatDateTime(r.endTime)
+                    plate: r.plates && r.plates.length > 0 ? r.plates[0].License : 'ไม่พบทะเบียน',
+                    photo1: r.platesPhoto,
+                    photo2: r.platesPhoto2,
+                    time: this.formatDateTime(r.time)
                 }));
 
-                this.pagination.total = response.totalItems || this.licenseRecords.length;
+                this.pagination.total = historyData.length;
 
             } catch (error) {
                 console.error("Failed to fetch history:", error);
@@ -205,40 +245,17 @@ export default {
         updateScreenHeight() {
             this.screenHeight = window.innerHeight;
         },
-
-        async fetchHistory() {
-            this.loading = true;
-            try {
-                const response = await this.licensePlateService.getVehicleHistory(
-                    this.filter.start,
-                    this.filter.end,
-                    this.pagination.limit,
-                    this.pagination.page,
-                    this.filter.license
-                );
-                const historyData = response.data || [];
-
-                this.licenseRecords = historyData.map(r => ({
-                    plate: r.licensePlate || r.license,
-                    type: r.vehicleType || 'ไม่ระบุ',
-                    in: this.formatDateTime(r.startTime),
-                    out: this.formatDateTime(r.endTime)
-                }));
-
-                this.pagination.total = response.totalItems || this.licenseRecords.length;
-
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'ดึงข้อมูลไม่สำเร็จ',
-                    text: 'ไม่สามารถโหลดประวัติการเข้าออกได้ กรุณาลองใหม่อีกครั้ง'
-                });
-
-                this.licenseRecords = [];
-            } finally {
-                this.loading = false;
-            }
-        },
     },
 }
 </script>
+<style>
+.modal-fade-enter,
+.modal-fade-leave-to {
+    opacity: 0;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity .3s ease;
+}
+</style>
