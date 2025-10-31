@@ -65,7 +65,7 @@
                     <label class="block mb-1 font-semibold text-gray-700">ถึงวันที่ (วันออก)</label>
                     <DatePicker v-model:value="form.out" lang="en" format="DD/MM/YYYY" value-type="YYYY-MM-DD"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 bg-gray-100 cursor-not-allowed"
-                        readonly required />
+                        :editable="false" :disabled="true" required />
                 </div>
             </div>
 
@@ -161,6 +161,9 @@ export default {
         },
         'form.province'(val) {
             this.provinceQuery = val;
+        },
+        'form.in'() {
+            this.calculateExpireDate();
         }
     },
     created() {

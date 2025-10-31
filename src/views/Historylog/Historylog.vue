@@ -17,7 +17,7 @@
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs text-gray-500 mb-1 whitespace-nowrap">ช่วงวันที่</label>
-                    <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="changePage(1)"
+                    <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="onDateRangeChange"
                         placeholder="เลือกวันที่"
                         class="border-gray-400 border-1 p-2 rounded max-w-[250px] bg-white text-gray-700" />
                 </div>
@@ -40,7 +40,7 @@
                         </td>
                     </tr>
 
-                    <tr v-else v-for="(record, idx) in licenseRecords" :key="idx"
+                    <tr v-else v-for="(record, idx) in paginatedRecords" :key="idx"
                         class="border-b hover:bg-orange-50 transition duration-100">
                         <td class="py-2 px-2 break-all max-w-plate">{{ record.plate }}</td>
 
@@ -67,6 +67,27 @@
                     </tr>
                 </tbody>
             </table>
+
+            <div v-if="shouldShowPagination && !loading" class="flex justify-center items-center space-x-2 mt-4 pb-2">
+
+                <button :disabled="pagination.page === 1" @click="changePage(pagination.page - 1)"
+                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1, 'hover:bg-orange-100': pagination.page > 1 }"
+                    class="p-2 rounded-full bg-white border border-gray-300 text-sm font-semibold text-gray-700 transition">
+                    &lt; ก่อนหน้า
+                </button>
+
+                <button v-for="page in totalPages" :key="page" @click="changePage(page)"
+                    :class="{ 'bg-orange-600 text-white shadow-md': page === pagination.page, 'bg-white text-gray-700 hover:bg-orange-100': page !== pagination.page }"
+                    class="px-3 py-1 rounded-full text-sm font-semibold transition">
+                    {{ page }}
+                </button>
+
+                <button :disabled="pagination.page === totalPages" @click="changePage(pagination.page + 1)"
+                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === totalPages, 'hover:bg-orange-100': pagination.page < totalPages }"
+                    class="p-2 rounded-full bg-white border border-gray-300 text-sm font-semibold text-gray-700 transition">
+                    ถัดไป &gt;
+                </button>
+            </div>
 
         </div>
 
@@ -129,6 +150,19 @@ export default {
     watch: {
         screenHeight(newHeight) {
             this.updatePaginationLimit(newHeight);
+        }
+    },
+    computed: {
+        paginatedRecords() {
+            const start = (this.pagination.page - 1) * this.pagination.limit;
+            return this.licenseRecords.slice(start, start + this.pagination.limit);
+        },
+        totalPages() {
+            if (this.pagination.limit <= 0) return 1;
+            return Math.max(1, Math.ceil(this.pagination.total / this.pagination.limit));
+        },
+        shouldShowPagination() {
+            return this.pagination.total > this.pagination.limit;
         }
     },
     mounted() {
@@ -195,21 +229,25 @@ export default {
 
                 const historyData = response.data || [];
 
-                this.licenseRecords = historyData.map(r => ({
+                const apiPagination = response.pagination || {};
+                this.pagination.total = typeof apiPagination.total === 'number'
+                    ? apiPagination.total
+                    : historyData.length;
+
+                const mappedRecords = historyData.map(r => ({
                     plate: r.plates && r.plates.length > 0 ? r.plates[0].License : 'ไม่พบทะเบียน',
                     photo1: r.platesPhoto,
                     photo2: r.platesPhoto2,
-                    time: this.formatDateTime(r.time)
+                    time: this.formatDate(r.detectDate),
                 }));
 
-                this.pagination.total = historyData.length;
-
+                this.licenseRecords = mappedRecords;
             } catch (error) {
                 console.error("Failed to fetch history:", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'ดึงข้อมูลไม่สำเร็จ',
-                    text: 'ไม่สามารถโหลดประวัติการเข้าออกได้ กรุณาลองใหม่อีกครั้ง'
+                    text: 'ไม่สามารถโหลดรายการผู้มาเยือนได้ กรุณาลองใหม่อีกครั้ง'
                 });
                 this.licenseRecords = [];
             } finally {
@@ -217,35 +255,37 @@ export default {
             }
         },
 
-        formatDateTime(dt) {
-            if (!dt) return '-';
-            const d = new Date(dt);
-            if (isNaN(d)) return dt;
-
-            const pad = (num) => String(num).padStart(2, '0');
-            const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-            const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-
-            return `${date} ${time}`;
+        onDateRangeChange() {
+            this.changePage(1);
         },
 
         changePage(newPage) {
-            this.pagination.page = newPage;
-            this.fetchHistory();
+            if (newPage >= 1 && newPage <= this.totalPages) {
+                this.pagination.page = newPage;
+                this.fetchHistory();
+            }
         },
-        updatePaginationLimit(height) {
-            const newLimit = height <= 740 ? 5 : 10;
 
+        formatDate(dt) {
+            if (!dt) return '-';
+            const d = new Date(dt);
+            if (isNaN(d.getTime())) return dt;
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}/${month}/${year}`;
+        },
+
+        updateScreenHeight() {
+            this.screenHeight = window.innerHeight;
+        },
+
+        updatePaginationLimit(height) {
+            const newLimit = height <= 740 ? 5 : 8;
             if (newLimit !== this.pagination.limit) {
                 this.pagination.limit = newLimit;
                 this.pagination.page = 1;
-                if (!this.loading && this.licenseRecords.length > 0) {
-                    this.fetchHistory();
-                }
             }
-        },
-        updateScreenHeight() {
-            this.screenHeight = window.innerHeight;
         },
     },
 }

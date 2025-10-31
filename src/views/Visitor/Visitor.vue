@@ -16,17 +16,14 @@
                     @input="onSearchInput"
                     class="p-2 border border-gray-300 rounded-lg min-w-0 focus:ring-orange-500 focus:border-orange-500 transition"
                     :class="{ 'border-orange-500 ring-1 ring-orange-500': searchQuery }">
-                <DatePicker 
-                    v-model:value="selectedDateRange" 
-                    lang="en" 
-                    range
-                    format="DD/MM/YYYY" 
-                    value-type="YYYY-MM-DD"
-                    @change="onDateChange" 
+                <flat-pickr 
+                    v-model="dateRange"
+                    :config="flatpickrConfig"
+                    @on-change="onDateChange"
                     placeholder="เลือกช่วงวันที่"
                     class="p-2 border border-gray-300 rounded-lg w-1/2 min-w-0 focus:ring-orange-500 focus:border-orange-500 transition"
-                    :class="{ 'border-orange-500 ring-1 ring-orange-500': selectedDateRange && selectedDateRange.length }"> 
-                </DatePicker>
+                    :class="{ 'border-orange-500 ring-1 ring-orange-500': !!dateRange }">
+                </flat-pickr>
                 </div>
             <table class="w-full text-left text-sm border-collapse shadow-sm rounded-xl overflow-hidden">
                 <thead>
@@ -113,19 +110,20 @@
 import CreateVisitor from '../../components/visitor/Create.vue';
 import { VisitorService } from '../../api/Visitor';
 import Swal from 'sweetalert2';
-import DatePicker from 'vue-datepicker-next';
+import flatPickr from 'vue-flatpickr-component';
+import 'flatpickr/dist/flatpickr.css';
 
 export default {
     components: {
         CreateVisitor,
-        DatePicker,
+        flatPickr,
     },
     data() {
         return {
             visitorService: new VisitorService(),
             loading: false,
             searchQuery: '',
-            selectedDateRange: null,
+            dateRange: '',
             pagination: {
                 limit: 8,
                 page: 1,
@@ -134,6 +132,15 @@ export default {
             screenHeight: window.innerHeight,
             visitors: [],
             showPopup: false,
+            flatpickrConfig: {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altFormat: 'd/m/Y',
+                altInput: true,
+                locale: {
+                    rangeSeparator: ' ถึง ',
+                },
+            },
         }
     },
     computed: {
@@ -141,13 +148,12 @@ export default {
             return this.screenHeight <= 740;
         },
         hasActiveFilters() {
-            return !!this.searchQuery.trim() || (this.selectedDateRange && this.selectedDateRange.length === 2 && this.selectedDateRange[0] && this.selectedDateRange[1]);
+            return !!this.searchQuery.trim() || !!this.dateRange;
         },
         filteredVisitors() {
             const q = this.searchQuery.trim().toLowerCase();
             
-            const startDate = this.selectedDateRange && this.selectedDateRange[0] ? new Date(this.selectedDateRange[0]) : null;
-            const endDate = this.selectedDateRange && this.selectedDateRange[1] ? new Date(this.selectedDateRange[1]) : null;
+            const [startDate, endDate] = this.parseDateRange();
 
             const isInDateRange = (visitorStartRaw, visitorExpireRaw, startFilter, endFilter) => {
                 if (!startFilter || !endFilter) return false;
@@ -281,17 +287,44 @@ export default {
             }
         },
         
+        parseDateRange() {
+            if (!this.dateRange) {
+                return [null, null];
+            }
+
+            const separator = this.dateRange.includes(' ถึง ') ? ' ถึง ' : ' to ';
+            const parts = this.dateRange.split(separator);
+
+            if (parts.length !== 2) {
+                return [null, null];
+            }
+
+            const [startStr, endStr] = parts;
+
+            const startDate = startStr ? new Date(startStr) : null;
+            const endDate = endStr ? new Date(endStr) : null;
+
+            if (startDate && !isNaN(startDate.getTime()) && endDate && !isNaN(endDate.getTime())) {
+                return [startDate, endDate];
+            }
+
+            return [null, null];
+        },
+
         onSearchInput() {
             this.pagination.page = 1;
         },
 
-        onDateChange() {
+        onDateChange(selectedDates, dateStr) {
+            if (dateStr !== undefined) {
+                this.dateRange = dateStr;
+            }
             this.pagination.page = 1;
         },
 
         resetFilters() {
             this.searchQuery = '';
-            this.selectedDateRange = null; 
+            this.dateRange = '';
             this.pagination.page = 1;
         },
 
