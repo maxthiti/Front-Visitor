@@ -14,15 +14,15 @@
             <div class="flex flex-row flex-nowrap items-center gap-4 mb-4">
                 <input type="text" placeholder="ค้นหาทะเบียน/ชื่อผู้มาเยือน..." v-model="searchQuery"
                     @input="onSearchInput"
-                    class="p-2 border border-gray-300 rounded-lg min-w-0 focus:ring-orange-500 focus:border-orange-500 transition"
-                    :class="{ 'border-orange-500 ring-1 ring-orange-500': searchQuery }">
+                    class="p-2 border border-gray-300 rounded-lg min-w-0 focus:ring-green-500 focus:border-green-500 transition"
+                    :class="{ 'border-green-500 ring-1 ring-green-500': searchQuery }">
                 <flat-pickr 
                     v-model="dateRange"
                     :config="flatpickrConfig"
                     @on-change="onDateChange"
                     placeholder="เลือกช่วงวันที่"
-                    class="p-2 border border-gray-300 rounded-lg w-1/2 min-w-0 focus:ring-orange-500 focus:border-orange-500 transition"
-                    :class="{ 'border-orange-500 ring-1 ring-orange-500': !!dateRange }">
+                    class="p-2 border border-gray-300 rounded-lg w-1/2 min-w-0 focus:ring-green-500 focus:border-green-500 transition"
+                    :class="{ 'border-green-500 ring-1 ring-green-500': !!dateRange }">
                 </flat-pickr>
             </div>
             <table class="w-full text-left text-sm border-collapse shadow-sm rounded-xl overflow-hidden">
@@ -42,7 +42,7 @@
                         </td>
                     </tr>
                     <tr v-else v-for="(visitor, idx) in paginatedVisitors" :key="visitor.id || idx"
-                        class="border-b hover:bg-orange-50 transition duration-100">
+                        class="border-b hover:bg-green-50 transition duration-100">
                         <td class="py-2 px-2 break-all max-w-plate">
                             <div class="font-semibold text-gray-800">{{ visitor.plate }}</div>
                             <div class="text-xs text-gray-500">{{ visitor.province }}</div>
@@ -75,7 +75,7 @@
             <div v-if="shouldShowPagination && !loading" class="flex justify-center items-center space-x-2 mt-4 pb-2">
 
                 <button :disabled="pagination.page === 1" @click="changePage(pagination.page - 1)"
-                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1, 'hover:bg-orange-100': pagination.page > 1 }"
+                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1, 'hover:bg-green-100': pagination.page > 1 }"
                     class="p-2 rounded-full bg-white border border-gray-300 text-sm font-semibold text-gray-700 transition">
                     &lt; ก่อนหน้า
                 </button>
@@ -83,8 +83,8 @@
                 <button v-for="(page, idx) in paginationLinks" :key="idx" @click="typeof page === 'number' && changePage(page)"
                     :disabled="typeof page !== 'number'"
                     :class="{
-                        'bg-orange-600 text-white shadow-md': page === pagination.page,
-                        'bg-white text-gray-700 hover:bg-orange-100': typeof page === 'number' && page !== pagination.page,
+                        'bg-green-600 text-white shadow-md': page === pagination.page,
+                        'bg-white text-gray-700 hover:bg-green-100': typeof page === 'number' && page !== pagination.page,
                         'cursor-default text-gray-400 bg-white': typeof page !== 'number'
                     }"
                     class="px-3 py-1 rounded-full text-sm font-semibold transition">
@@ -92,7 +92,7 @@
                 </button>
 
                 <button :disabled="pagination.page === totalPages" @click="changePage(pagination.page + 1)"
-                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === totalPages, 'hover:bg-orange-100': pagination.page < totalPages }"
+                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === totalPages, 'hover:bg-green-100': pagination.page < totalPages }"
                     class="p-2 rounded-full bg-white border border-gray-300 text-sm font-semibold text-gray-700 transition">
                     ถัดไป &gt;
                 </button>

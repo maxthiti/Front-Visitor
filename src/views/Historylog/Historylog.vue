@@ -7,13 +7,13 @@
 
             <div class="flex flex-row flex-nowrap items-center gap-4 mb-4">
                 <input type="text" v-model="searchQuery" @input="onSearchInput" placeholder="ค้นหาทะเบียนรถ"
-                    class="p-2 border border-gray-300 rounded-lg min-w-0 w-full focus:ring-orange-500 focus:border-orange-500 transition"
-                    :class="{ 'border-orange-500 ring-1 ring-orange-500': searchQuery }">
+                    class="p-2 border border-gray-300 rounded-lg min-w-0 w-full focus:ring-green-500 focus:border-green-500 transition"
+                    :class="{ 'border-green-500 ring-1 ring-green-500': searchQuery }">
 
                 <flat-pickr v-model="dateRange" :config="flatpickrConfig"
                     placeholder="เลือกช่วงวันที่"
-                    class="p-2 border border-3 border-gray-300 rounded-lg min-w-0 w-full focus:ring-orange-500 focus:border-orange-500 transition"
-                    :class="{ 'border-orange-500 ring-1 ring-orange-500': !!dateRange }">
+                    class="p-2 border border-3 border-gray-300 rounded-lg min-w-0 w-full focus:ring-green-500 focus:border-green-500 transition"
+                    :class="{ 'border-green-500 ring-1 ring-green-500': !!dateRange }">
                 </flat-pickr>
             </div>
 
@@ -33,7 +33,7 @@
                     </tr>
 
                     <tr v-else v-for="(record, idx) in paginatedRecords" :key="idx"
-                        class="border-b hover:bg-orange-50 transition duration-100">
+                        class="border-b hover:bg-green-50 transition duration-100">
                         <td class="py-2 px-2 break-all max-w-plate">
                             <div class="text-gray-700 font-semibold">{{ record.plate }}</div>
                             <!-- <div class="text-xs text-gray-400 mt-1">{{ record.timeDisplay }}</div> -->
@@ -42,14 +42,14 @@
 
                         <td class="py-2 px-2">
                             <img :src="record.photo1" v-if="record.photo1" @click="showFullScreenImage(record.photo1)"
-                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 border-orange-200 hover:border-orange-500 transition duration-150"
+                                class="cursor-pointer shadow object-cover w-[100px] h-auto border-2 transition duration-150"
                                 alt="รูปภาพ 1">
                             <span v-else>-</span>
                         </td>
 
                         <td class="py-2 px-2">
                             <img :src="record.photo2" v-if="record.photo2" @click="showFullScreenImage(record.photo2)"
-                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 border-orange-200 hover:border-orange-500 transition duration-150"
+                                class="cursor-pointer shadow object-cover w-[100px] h-auto border-2 transition duration-150"
                                 alt="รูปภาพ 2">
                             <span v-else>-</span>
                         </td>
@@ -65,22 +65,22 @@
             <div v-if="!loading" class="flex justify-center items-center space-x-2 mt-4 pb-2">
 
                 <button :disabled="pagination.page === 1" @click="changePage(pagination.page - 1)"
-                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1, 'hover:bg-orange-100': pagination.page > 1 }"
+                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1, 'hover:bg-green-100': pagination.page > 1 }"
                     class="p-2 rounded-full bg-white border border-gray-300 text-sm font-semibold text-gray-700 transition">
                     &lt; ก่อนหน้า
                 </button>
 
                 <button v-for="(page, idx) in paginationLinks" :key="idx"
                     @click="typeof page === 'number' && changePage(page)" :disabled="typeof page !== 'number'" :class="{
-                        'bg-orange-600 text-white shadow-md': page === pagination.page,
-                        'bg-white text-gray-700 hover:bg-orange-100': typeof page === 'number' && page !== pagination.page,
+                        'bg-green-600 text-white shadow-md': page === pagination.page,
+                        'bg-white text-gray-700 hover:bg-green-100': typeof page === 'number' && page !== pagination.page,
                         'cursor-default text-gray-400 bg-white': typeof page !== 'number'
                     }" class="px-3 py-1 rounded-full text-sm font-semibold transition">
                     {{ page }}
                 </button>
 
                 <button :disabled="pagination.page === totalPages" @click="changePage(pagination.page + 1)"
-                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === totalPages, 'hover:bg-orange-100': pagination.page < totalPages }"
+                    :class="{ 'opacity-50 cursor-not-allowed': pagination.page === totalPages, 'hover:bg-green-100': pagination.page < totalPages }"
                     class="p-2 rounded-full bg-white border border-gray-300 text-sm font-semibold text-gray-700 transition">
                     ถัดไป &gt;
                 </button>
