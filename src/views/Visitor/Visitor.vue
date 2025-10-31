@@ -16,12 +16,18 @@
                     @input="onSearchInput"
                     class="p-2 border border-gray-300 rounded-lg min-w-0 focus:ring-orange-500 focus:border-orange-500 transition"
                     :class="{ 'border-orange-500 ring-1 ring-orange-500': searchQuery }">
-                <DatePicker v-model:value="selectedDate" lang="en" format="DD/MM/YYYY" value-type="YYYY-MM-DD"
-                    @change="onDateChange" placeholder="เลือกวันที่"
+                <DatePicker 
+                    v-model:value="selectedDateRange" 
+                    lang="en" 
+                    range
+                    format="DD/MM/YYYY" 
+                    value-type="YYYY-MM-DD"
+                    @change="onDateChange" 
+                    placeholder="เลือกช่วงวันที่"
                     class="p-2 border border-gray-300 rounded-lg w-1/2 min-w-0 focus:ring-orange-500 focus:border-orange-500 transition"
-                    :class="{ 'border-orange-500 ring-1 ring-orange-500': selectedDate }"> </DatePicker>
-
-            </div>
+                    :class="{ 'border-orange-500 ring-1 ring-orange-500': selectedDateRange && selectedDateRange.length }"> 
+                </DatePicker>
+                </div>
             <table class="w-full text-left text-sm border-collapse shadow-sm rounded-xl overflow-hidden">
                 <thead>
                     <tr class="bg-gradient-to-r from-green-200 to-blue-200 text-green-900">
@@ -63,7 +69,7 @@
                     </tr>
                     <tr v-if="!loading && filteredVisitors.length === 0">
                         <td colspan="5" class="py-4 text-center text-gray-500">
-                            {{ hasActiveFilters ? 'ไม่พบข้อมูลที่ตรงกับตัวกรอง' : 'ไม่มีข้อมูลผู้มาเยือนในขณะนี้' }}
+                            {{ hasActiveFilters ? 'ไม่พบข้อมูลที่ตรงกับตัวกรอง' : 'ไม่พบข้อมูลผู้มาเยือนในเดือนนี้' }}
                         </td>
                     </tr>
                 </tbody>
@@ -119,7 +125,7 @@ export default {
             visitorService: new VisitorService(),
             loading: false,
             searchQuery: '',
-            selectedDate: '',
+            selectedDateRange: null,
             pagination: {
                 limit: 8,
                 page: 1,
@@ -135,41 +141,54 @@ export default {
             return this.screenHeight <= 740;
         },
         hasActiveFilters() {
-            return !!this.searchQuery.trim() || !!this.selectedDate;
+            return !!this.searchQuery.trim() || (this.selectedDateRange && this.selectedDateRange.length === 2 && this.selectedDateRange[0] && this.selectedDateRange[1]);
         },
         filteredVisitors() {
             const q = this.searchQuery.trim().toLowerCase();
-            const sel = this.selectedDate ? new Date(this.selectedDate) : null;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            
+            const startDate = this.selectedDateRange && this.selectedDateRange[0] ? new Date(this.selectedDateRange[0]) : null;
+            const endDate = this.selectedDateRange && this.selectedDateRange[1] ? new Date(this.selectedDateRange[1]) : null;
 
-            const isSameDay = (dateA, dateB) => {
-                if (!dateA || !dateB) return false;
-                const dA = new Date(dateA);
-                const dB = new Date(dateB);
-                if (isNaN(dA.getTime()) || isNaN(dB.getTime())) return false;
-                return dA.getFullYear() === dB.getFullYear() && dA.getMonth() === dB.getMonth() && dA.getDate() === dB.getDate();
+            const isInDateRange = (visitorStartRaw, visitorExpireRaw, startFilter, endFilter) => {
+                if (!startFilter || !endFilter) return false;
+                
+                const vStart = new Date(visitorStartRaw);
+                const vExpire = new Date(visitorExpireRaw);
+                
+                const filterStart = new Date(startFilter);
+                filterStart.setHours(0, 0, 0, 0);
+                const filterEnd = new Date(endFilter);
+                filterEnd.setHours(23, 59, 59, 999);
+                
+                const isVisitorValid = 
+                    vStart.getTime() <= filterEnd.getTime() && 
+                    vExpire.getTime() >= filterStart.getTime();
+
+                return isVisitorValid;
             };
 
             let list = this.visitors.slice();
 
-            if (this.hasActiveFilters) {
-                // โหมดค้นหา/กรอง: กรองตามคำค้นหา
-                if (q) {
-                    list = list.filter(v => {
-                        return (v.plate && v.plate.toLowerCase().includes(q)) ||
-                            (v.guestName && v.guestName.toLowerCase().includes(q));
-                    });
-                }
-                // โหมดค้นหา/กรอง: กรองตามวันที่เลือก
-                if (sel) {
-                    list = list.filter(v => {
-                        return isSameDay(v.startRaw, sel) || isSameDay(v.expireRaw, sel);
-                    });
-                }
-            } else {
+            if (q) {
                 list = list.filter(v => {
-                    return isSameDay(v.startRaw, today);
+                    return (v.plate && v.plate.toLowerCase().includes(q)) ||
+                        (v.guestName && v.guestName.toLowerCase().includes(q));
+                });
+            }
+
+            if (this.hasActiveFilters && startDate && endDate) {
+                list = list.filter(v => {
+                    return isInDateRange(v.startRaw, v.expireRaw, startDate, endDate);
+                });
+            } 
+            
+            else if (!this.hasActiveFilters) {
+                const today = new Date();
+                const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                
+                list = list.filter(v => {
+                    return isInDateRange(v.startRaw, v.expireRaw, currentMonthStart, currentMonthEnd);
                 });
             }
 
@@ -217,7 +236,7 @@ export default {
         this.updatePaginationLimit(this.screenHeight);
 
         window.addEventListener('resize', this.updateScreenHeight);
-
+        
         this.fetchVisitors();
     },
     beforeUnmount() {
@@ -261,7 +280,7 @@ export default {
                 this.loading = false;
             }
         },
-
+        
         onSearchInput() {
             this.pagination.page = 1;
         },
@@ -272,7 +291,7 @@ export default {
 
         resetFilters() {
             this.searchQuery = '';
-            this.selectedDate = '';
+            this.selectedDateRange = null; 
             this.pagination.page = 1;
         },
 

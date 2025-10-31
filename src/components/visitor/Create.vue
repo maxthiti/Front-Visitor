@@ -59,7 +59,7 @@
                     <label class="block mb-1 font-semibold text-gray-700">วันที่เข้า</label>
                     <DatePicker v-model:value="form.in" lang="en" format="DD/MM/YYYY" value-type="YYYY-MM-DD"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-                        @input="calculateExpireDate" required />
+                        @input="calculateExpireDate" required :disabled-date="disablePastDates" />
                 </div>
                 <div>
                     <label class="block mb-1 font-semibold text-gray-700">ถึงวันที่ (วันออก)</label>
@@ -91,17 +91,14 @@ import DatePicker from 'vue-datepicker-next';
 function formatDateTimeForApi(dateString, isEndDay = false) {
     if (!dateString) return null;
 
-    const date = new Date(dateString + 'T00:00:00.000Z');
+    const date = new Date(dateString);
 
     if (isNaN(date.getTime())) {
         console.error("Invalid date time format:", dateString);
         return null;
     }
 
-    if (isEndDay) {
-        date.setUTCDate(date.getUTCDate() + 1);
-        date.setTime(date.getTime() - 1);
-    }
+    date.setHours(0, 0, 0, 0);
 
     return date.toISOString();
 }
@@ -188,10 +185,17 @@ export default {
             }, 100);
         },
 
+        disablePastDates(date) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            return date.getTime() < today.getTime();
+        },
+
         calculateExpireDate() {
             if (this.form.in) {
-                const startDate = new Date(this.form.in + 'T00:00:00.000Z');
-                startDate.setUTCDate(startDate.getUTCDate() + 1);
+                const startDate = new Date(this.form.in);
+                startDate.setDate(startDate.getDate() + 1);
                 this.form.out = formatDate(startDate);
             } else {
                 this.form.out = '';
@@ -242,7 +246,13 @@ export default {
                 this.cancel();
 
             } catch (error) {
-                const errorMessage = error.message || error.response?.data?.message || 'บันทึกไม่สำเร็จ เนื่องจากเกิดข้อผิดพลาดในการเชื่อมต่อหรือข้อมูล';
+                let errorMessage;
+                if (error.response?.data?.error === "this license is the member") {
+                    errorMessage = 'ป้ายทะเบียนนี้เป็นป้ายทะเบียนของลูกบ้าน';
+                } else {
+                    errorMessage = error.message || error.response?.data?.message || 'บันทึกไม่สำเร็จ เนื่องจากเกิดข้อผิดพลาดในการเชื่อมต่อหรือข้อมูล';
+                }
+
                 await Swal.fire({
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด!',
