@@ -134,6 +134,7 @@ export default {
         maxExpireDate() {
             const maxDate = new Date();
             maxDate.setFullYear(maxDate.getFullYear() + 5);
+            maxDate.setDate(maxDate.getDate() - 1);
             return formatDate(maxDate);
         }
     },
@@ -190,6 +191,8 @@ export default {
                 if (this.isPermanent) {
                     const expireDate = new Date(startDate);
                     expireDate.setFullYear(startDate.getFullYear() + 5);
+                    expireDate.setDate(expireDate.getDate() - 1);
+                    // expireDate.setHours(23, 59, 59, 999);
 
                     payload.start = formatDateForApi(startDate);
                     payload.expire = formatDateForApi(expireDate);
