@@ -57,13 +57,13 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block mb-1 font-semibold text-gray-700">วันที่เข้า</label>
-                    <DatePicker v-model:value="form.expire" lang="en" format="DD/MM/YYYY" value-type="YYYY-MM-DD"
+                    <DatePicker v-model:value="form.in" lang="en" format="DD/MM/YYYY" value-type="YYYY-MM-DD"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
                         @input="calculateExpireDate" required />
                 </div>
                 <div>
                     <label class="block mb-1 font-semibold text-gray-700">ถึงวันที่ (วันออก)</label>
-                    <DatePicker v-model:value="form.expire" lang="en" format="DD/MM/YYYY" value-type="YYYY-MM-DD"
+                    <DatePicker v-model:value="form.out" lang="en" format="DD/MM/YYYY" value-type="YYYY-MM-DD"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 bg-gray-100 cursor-not-allowed"
                         readonly required />
                 </div>
@@ -87,22 +87,31 @@ import { VisitorService } from '../../api/Visitor';
 import Swal from 'sweetalert2';
 import DatePicker from 'vue-datepicker-next';
 
+
+function formatDateTimeForApi(dateString, isEndDay = false) {
+    if (!dateString) return null;
+
+    const date = new Date(dateString + 'T00:00:00.000Z');
+
+    if (isNaN(date.getTime())) {
+        console.error("Invalid date time format:", dateString);
+        return null;
+    }
+
+    if (isEndDay) {
+        date.setUTCDate(date.getUTCDate() + 1);
+        date.setTime(date.getTime() - 1);
+    }
+
+    return date.toISOString();
+}
+
 function formatDate(date) {
     if (!date || isNaN(date.getTime())) return '';
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-}
-
-function formatInDateToApi(dateString) {
-    if (!dateString) return null;
-    return `${dateString}T00:00:00.000Z`;
-}
-
-function formatOutDateToApi(dateString) {
-    if (!dateString) return null;
-    return `${dateString}T17:00:00.000Z`;
 }
 
 export default {
@@ -181,8 +190,8 @@ export default {
 
         calculateExpireDate() {
             if (this.form.in) {
-                const startDate = new Date(this.form.in);
-                startDate.setDate(startDate.getDate() + 1);
+                const startDate = new Date(this.form.in + 'T00:00:00.000Z');
+                startDate.setUTCDate(startDate.getUTCDate() + 1);
                 this.form.out = formatDate(startDate);
             } else {
                 this.form.out = '';
@@ -209,8 +218,8 @@ export default {
                     licensePlate: this.form.plate,
                     licensePlateProvince: this.form.province,
                     guestName: this.form.guestName,
-                    start: formatInDateToApi(this.form.in, false),
-                    expire: formatOutDateToApi(this.form.out, true),
+                    start: formatDateTimeForApi(this.form.in, false),
+                    expire: formatDateTimeForApi(this.form.out, true),
                     vehicleType: this.form.vehicleType,
                     object: this.form.object,
                 };
