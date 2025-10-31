@@ -192,7 +192,6 @@ export default {
                     const expireDate = new Date(startDate);
                     expireDate.setFullYear(startDate.getFullYear() + 5);
                     expireDate.setDate(expireDate.getDate() - 1);
-                    // expireDate.setHours(23, 59, 59, 999);
 
                     payload.start = formatDateForApi(startDate);
                     payload.expire = formatDateForApi(expireDate);
@@ -228,10 +227,10 @@ export default {
                 }
             } catch (err) {
                 let errorMessage;
-                if (err.response?.data?.error === "this license is the member") {
+                if (err.res?.data?.error === "this license is the member") {
                     errorMessage = 'ป้ายทะเบียนนี้เป็นป้ายทะเบียนของลูกบ้าน';
                 } else {
-                    errorMessage = err.message || err.response?.data?.message || 'บันทึกไม่สำเร็จ เนื่องจากเกิดข้อผิดพลาดในการเชื่อมต่อหรือข้อมูล';
+                    errorMessage = err.message || err.res?.data?.message || 'บันทึกไม่สำเร็จ เนื่องจากเกิดข้อผิดพลาดในการเชื่อมต่อหรือข้อมูล';
                 }
 
                 await Swal.fire({

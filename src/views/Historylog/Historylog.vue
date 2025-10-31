@@ -7,21 +7,15 @@
 
             <div class="mb-4 flex flex-wrap justify-between items-center gap-4">
                 <div class="flex gap-4">
-                    <input type="text" v-model="filter.license" @keyup.enter="fetchHistory" placeholder="ค้นหาทะเบียนรถ"
+                    <input type="text" v-model="searchQuery" @input="onSearchInput" placeholder="ค้นหาทะเบียนรถ"
                         class="border p-2 rounded w-40">
-
-                    <button @click="fetchHistory" :disabled="loading"
-                        class="bg-blue-500 text-white p-2 rounded transition disabled:opacity-50">
-                        ค้นหา
-                    </button>
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs text-gray-500 mb-1 whitespace-nowrap">ช่วงวันที่</label>
-                    <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="changePage(1)"
+                    <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="onDateRangeChange"
                         placeholder="เลือกวันที่"
                         class="border-gray-400 border-1 p-2 rounded max-w-[250px] bg-white text-gray-700" />
                 </div>
-
             </div>
 
             <table class="w-full text-left text-sm border-collapse shadow-sm rounded-xl overflow-hidden">
@@ -43,7 +37,7 @@
                         class="border-b hover:bg-orange-50 transition duration-100">
                         <td class="py-2 px-2 break-all max-w-plate">
                             <div class="text-gray-700 font-semibold">{{ record.plate }}</div>
-                            <div class="text-xs text-gray-400 mt-1">{{ record.time }}</div>
+                            <div class="text-xs text-gray-400 mt-1">{{ record.timeDisplay }}</div>
                         </td>
 
                         <td class="py-2 px-2">
@@ -60,7 +54,7 @@
                             <span v-else>-</span>
                         </td>
                     </tr>
-                    <tr v-if="!loading && licenseRecords.length === 0">
+                    <tr v-if="!loading && filteredRecords.length === 0">
                         <td colspan="3" class="py-4 text-center text-gray-500">
                             ไม่พบประวัติการเข้าออก
                         </td>
@@ -132,12 +126,8 @@ export default {
                 page: 1,
                 total: 0,
             },
-            filter: {
-                license: '',
-                start: '2024-01-01 00:00:00',
-                end: '2025-12-31 23:59:59',
-            },
-            licenseRecords: [],
+            allRecords: [],
+            searchQuery: '',
             screenHeight: window.innerHeight,
             dateRange: '',
             minSelectableDate: null,
@@ -163,11 +153,50 @@ export default {
     computed: {
         paginatedRecords() {
             const start = (this.pagination.page - 1) * this.pagination.limit;
-            return this.licenseRecords.slice(start, start + this.pagination.limit);
+            return this.filteredRecords.slice(start, start + this.pagination.limit);
         },
         totalPages() {
             if (this.pagination.limit <= 0) return 1;
-            return Math.max(1, Math.ceil(this.pagination.total / this.pagination.limit));
+            return Math.max(1, Math.ceil(this.filteredRecords.length / this.pagination.limit));
+        },
+        filteredRecords() {
+            let records = this.allRecords.slice();
+
+            const query = this.searchQuery.trim().toLowerCase();
+            if (query) {
+                records = records.filter(r => r.plate && r.plate.toLowerCase().includes(query));
+            }
+
+            const [startDate, endDate] = this.parseDateRange();
+            if (startDate && endDate) {
+                const startTime = startDate.getTime();
+                const endTime = endDate.getTime();
+
+                records = records.filter(r => {
+                    if (!r.timeRaw) return false;
+                    const dt = new Date(r.timeRaw);
+                    if (isNaN(dt.getTime())) return false;
+                    return dt.getTime() >= startTime && dt.getTime() <= endTime;
+                });
+            }
+
+            records.sort((a, b) => {
+                const aTime = a.timeRaw ? new Date(a.timeRaw).getTime() : 0;
+                const bTime = b.timeRaw ? new Date(b.timeRaw).getTime() : 0;
+                return bTime - aTime;
+            });
+
+            this.pagination.total = records.length;
+
+            const currentTotalPages = this.pagination.limit > 0
+                ? Math.max(1, Math.ceil(records.length / this.pagination.limit))
+                : 1;
+
+            if (this.pagination.page > currentTotalPages) {
+                this.pagination.page = currentTotalPages;
+            }
+
+            return records;
         },
         paginationLinks() {
             const total = this.totalPages;
@@ -226,7 +255,7 @@ export default {
         this.flatpickrConfig.maxDate = this.maxSelectableDate;
 
         if (!this.dateRange) {
-            this.dateRange = `${this.getTodayStart().split(' ')[0]} to ${this.getTodayEnd().split(' ')[0]}`;
+            this.dateRange = `${this.minSelectableDate} to ${this.maxSelectableDate}`;
         }
 
         this.updatePaginationLimit(this.screenHeight);
@@ -263,46 +292,31 @@ export default {
         async fetchHistory() {
             this.loading = true;
 
-            const separator = this.dateRange.includes(' ถึง ') ? ' ถึง ' : ' to ';
-
-            if (this.dateRange) {
-                const dates = this.dateRange.split(separator);
-                if (dates.length === 2) {
-                    this.filter.start = `${dates[0]} 00:00:00`;
-                    this.filter.end = `${dates[1]} 23:59:59`;
-                }
-            } else {
-                this.filter.start = this.getTodayStart();
-                this.filter.end = this.getTodayEnd();
-            }
-
             try {
+                const startRange = `${this.minSelectableDate} 00:00:00`;
+                const endRange = `${this.maxSelectableDate} 23:59:59`;
+                const LARGE_LIMIT = 10000;
+
                 const response = await this.licensePlateService.getVehicleHistory(
-                    this.filter.start,
-                    this.filter.end,
-                    this.pagination.limit,
-                    this.pagination.page,
-                    this.filter.license
+                    startRange,
+                    endRange,
+                    LARGE_LIMIT,
+                    1,
+                    null
                 );
                 console.log("response", response);
 
                 const historyData = response.data || [];
 
-                this.pagination.total = response.pagination?.total || historyData.length;
-
                 const mappedRecords = historyData.map(r => ({
                     plate: r.plates && r.plates.length > 0 ? r.plates[0].License : 'ไม่พบทะเบียน',
                     photo1: r.platesPhoto,
                     photo2: r.platesPhoto2,
-                    time: this.formatDate(r.detectDate),
+                    timeDisplay: this.formatDate(r.time),
+                    timeRaw: r.time || r.detectDate,
                 }));
 
-                if (this.pagination.page > this.totalPages) {
-                    this.pagination.page = this.totalPages;
-                    return this.fetchHistory();
-                }
-
-                this.licenseRecords = mappedRecords;
+                this.allRecords = mappedRecords;
             } catch (error) {
                 console.error("Failed to fetch history:", error);
                 Swal.fire({
@@ -310,7 +324,7 @@ export default {
                     title: 'ดึงข้อมูลไม่สำเร็จ',
                     text: 'ไม่สามารถโหลดประวัติการเข้าออกได้ กรุณาลองใหม่อีกครั้ง'
                 });
-                this.licenseRecords = [];
+                this.allRecords = [];
             } finally {
                 this.loading = false;
             }
@@ -319,7 +333,6 @@ export default {
         changePage(newPage) {
             if (newPage >= 1 && newPage <= this.totalPages) {
                 this.pagination.page = newPage;
-                this.fetchHistory();
             }
         },
 
@@ -343,6 +356,43 @@ export default {
                 this.pagination.limit = newLimit;
                 this.pagination.page = 1;
             }
+        },
+
+        onSearchInput() {
+            this.pagination.page = 1;
+        },
+
+        onDateRangeChange(selectedDates, dateStr) {
+            if (dateStr !== undefined) {
+                this.dateRange = dateStr;
+            }
+            this.pagination.page = 1;
+        },
+
+        parseDateRange() {
+            if (!this.dateRange) {
+                return [null, null];
+            }
+
+            const separator = this.dateRange.includes(' ถึง ') ? ' ถึง ' : ' to ';
+            const parts = this.dateRange.split(separator);
+
+            if (parts.length !== 2) {
+                return [null, null];
+            }
+
+            const [startStr, endStr] = parts;
+
+            const startDate = startStr ? new Date(startStr) : null;
+            const endDate = endStr ? new Date(endStr) : null;
+
+            if (startDate && !isNaN(startDate.getTime()) && endDate && !isNaN(endDate.getTime())) {
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setHours(23, 59, 59, 999);
+                return [startDate, endDate];
+            }
+
+            return [null, null];
         },
     },
 }
