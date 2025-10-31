@@ -45,14 +45,16 @@
                         <td class="py-2 px-2 break-all max-w-plate">{{ record.plate }}</td>
 
                         <td class="py-2 px-2">
-                            <button @click.prevent="showFullScreenImage(record.photo1)" v-if="record.photo1"
-                                class="text-blue-500 hover:underline focus:outline-none">ดูรูป</button>
+                            <img :src="record.photo1" v-if="record.photo1" @click="showFullScreenImage(record.photo1)"
+                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 hover:border-blue-500 transition duration-150"
+                                alt="รูปภาพ 1">
                             <span v-else>-</span>
                         </td>
 
                         <td class="py-2 px-2">
-                            <button @click.prevent="showFullScreenImage(record.photo2)" v-if="record.photo2"
-                                class="text-blue-500 hover:underline focus:outline-none">ดูรูป</button>
+                            <img :src="record.photo2" v-if="record.photo2" @click="showFullScreenImage(record.photo2)"
+                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 hover:border-blue-500 transition duration-150"
+                                alt="รูปภาพ 2">
                             <span v-else>-</span>
                         </td>
 
