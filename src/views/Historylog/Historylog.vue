@@ -15,12 +15,11 @@
                     class="p-2 border border-3 border-gray-300 rounded-lg min-w-0 w-full focus:ring-orange-500 focus:border-orange-500 transition"
                     :class="{ 'border-orange-500 ring-1 ring-orange-500': !!dateRange }">
                 </flat-pickr>
-                
-                </div>
+            </div>
 
             <table class="w-full text-left text-sm border-collapse shadow-sm rounded-xl overflow-hidden">
                 <thead>
-                    <tr class="bg-orange-200 text-orange-900">
+                    <tr class="bg-gradient-to-r from-green-200 to-blue-200 text-green-900">
                         <th class="py-3 px-2">ทะเบียน</th>
                         <th class="py-3 px-2">รูป1</th>
                         <th class="py-3 px-2">รูป2</th>
@@ -37,7 +36,8 @@
                         class="border-b hover:bg-orange-50 transition duration-100">
                         <td class="py-2 px-2 break-all max-w-plate">
                             <div class="text-gray-700 font-semibold">{{ record.plate }}</div>
-                            <div class="text-xs text-gray-400 mt-1">{{ record.timeDisplay }}</div>
+                            <!-- <div class="text-xs text-gray-400 mt-1">{{ record.timeDisplay }}</div> -->
+                            <div class="text-xs text-gray-400 mt-1" v-html="record.timeDisplay"></div>
                         </td>
 
                         <td class="py-2 px-2">
@@ -174,7 +174,7 @@ export default {
             if (query) {
                 records = records.filter(r => r.plate && r.plate.toLowerCase().includes(query));
             }
-
+            
             records.sort((a, b) => {
                 const aTime = a.timeRaw ? new Date(a.timeRaw).getTime() : 0;
                 const bTime = b.timeRaw ? new Date(b.timeRaw).getTime() : 0;
@@ -196,29 +196,32 @@ export default {
         paginationLinks() {
             const total = this.totalPages;
             const current = this.pagination.page;
+            const maxVisiblePages = 5;
 
-            if (total <= 7) {
+            if (total <= maxVisiblePages + 2) { 
                 return Array.from({ length: total }, (_, i) => i + 1);
             }
 
-            const pages = new Set([1, total]);
-            const neighbors = [current - 1, current, current + 1];
-            neighbors.forEach(page => {
-                if (page > 1 && page < total) {
-                    pages.add(page);
-                }
-            });
+            const pages = new Set();
+            pages.add(1); 
+            pages.add(total); 
 
+            for (let i = current - 1; i <= current + 1; i++) {
+                if (i > 1 && i < total) {
+                    pages.add(i);
+                }
+            }
+            
             if (current <= 3) {
                 pages.add(2);
                 pages.add(3);
                 pages.add(4);
-            }
-
+            } 
+            
             if (current >= total - 2) {
-                pages.add(total - 1);
-                pages.add(total - 2);
                 pages.add(total - 3);
+                pages.add(total - 2);
+                pages.add(total - 1);
             }
 
             const sortedPages = Array.from(pages).sort((a, b) => a - b);
@@ -227,11 +230,7 @@ export default {
 
             sortedPages.forEach(page => {
                 if (prev !== null && page - prev > 1) {
-                    if (page - prev === 2) {
-                        result.push(prev + 1);
-                    } else {
-                        result.push('...');
-                    }
+                    result.push('...'); 
                 }
                 result.push(page);
                 prev = page;
@@ -247,7 +246,7 @@ export default {
             const today = new Date().toISOString().split('T')[0];
             this.dateRange = `${today} to ${today}`;
         }
-        this.fetchHistory();
+        this.fetchHistory(); 
 
         window.addEventListener('resize', this.updateScreenHeight);
     },
@@ -341,10 +340,10 @@ export default {
             const day = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const year = d.getFullYear();
-            // const hour = String(d.getHours()).padStart(2, '0');
-            // const minute = String(d.getMinutes()).padStart(2, '0');
-            // const second = String(d.getSeconds()).padStart(2, '0');
-            return `${day}/${month}/${year}`; 
+            const hour = String(d.getHours()).padStart(2, '0');
+            const minute = String(d.getMinutes()).padStart(2, '0');
+            const second = String(d.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year}<br>${hour}:${minute}:${second}`; 
         },
 
         formatDateForApi(dateObj, isStart) {
