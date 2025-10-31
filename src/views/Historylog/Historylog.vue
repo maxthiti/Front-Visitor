@@ -5,22 +5,22 @@
                 <span class="font-bold text-lg">ประวัติการเข้าออก</span>
             </div>
 
-            <div class="mb-4 flex flex-wrap justify-between items-center gap-4">
-                <div class="flex gap-4">
-                    <input type="text" v-model="searchQuery" @input="onSearchInput" placeholder="ค้นหาทะเบียนรถ"
-                        class="border p-2 rounded w-40">
+            <div class="flex flex-row flex-nowrap items-center gap-4 mb-4">
+                <input type="text" v-model="searchQuery" @input="onSearchInput" placeholder="ค้นหาทะเบียนรถ"
+                    class="p-2 border border-gray-300 rounded-lg min-w-0 w-full focus:ring-orange-500 focus:border-orange-500 transition"
+                    :class="{ 'border-orange-500 ring-1 ring-orange-500': searchQuery }">
+
+                <flat-pickr v-model="dateRange" :config="flatpickrConfig"
+                    placeholder="เลือกช่วงวันที่"
+                    class="p-2 border border-3 border-gray-300 rounded-lg min-w-0 w-full focus:ring-orange-500 focus:border-orange-500 transition"
+                    :class="{ 'border-orange-500 ring-1 ring-orange-500': !!dateRange }">
+                </flat-pickr>
+                
                 </div>
-                <div class="flex flex-col">
-                    <label class="text-xs text-gray-500 mb-1 whitespace-nowrap">ช่วงวันที่</label>
-                    <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="onDateRangeChange"
-                        placeholder="เลือกวันที่"
-                        class="border-gray-400 border-1 p-2 rounded max-w-[250px] bg-white text-gray-700" />
-                </div>
-            </div>
 
             <table class="w-full text-left text-sm border-collapse shadow-sm rounded-xl overflow-hidden">
                 <thead>
-                    <tr class="bg-gradient-to-r from-green-200 to-blue-200 text-green-900">
+                    <tr class="bg-orange-200 text-orange-900">
                         <th class="py-3 px-2">ทะเบียน</th>
                         <th class="py-3 px-2">รูป1</th>
                         <th class="py-3 px-2">รูป2</th>
@@ -42,14 +42,14 @@
 
                         <td class="py-2 px-2">
                             <img :src="record.photo1" v-if="record.photo1" @click="showFullScreenImage(record.photo1)"
-                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 hover:border-blue-500 transition duration-150"
+                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 border-orange-200 hover:border-orange-500 transition duration-150"
                                 alt="รูปภาพ 1">
                             <span v-else>-</span>
                         </td>
 
                         <td class="py-2 px-2">
                             <img :src="record.photo2" v-if="record.photo2" @click="showFullScreenImage(record.photo2)"
-                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 hover:border-blue-500 transition duration-150"
+                                class="cursor-pointer shadow object-cover w-[120px] h-auto border-2 border-orange-200 hover:border-orange-500 transition duration-150"
                                 alt="รูปภาพ 2">
                             <span v-else>-</span>
                         </td>
@@ -71,14 +71,11 @@
                 </button>
 
                 <button v-for="(page, idx) in paginationLinks" :key="idx"
-                    @click="typeof page === 'number' && changePage(page)"
-                    :disabled="typeof page !== 'number'"
-                    :class="{
+                    @click="typeof page === 'number' && changePage(page)" :disabled="typeof page !== 'number'" :class="{
                         'bg-orange-600 text-white shadow-md': page === pagination.page,
                         'bg-white text-gray-700 hover:bg-orange-100': typeof page === 'number' && page !== pagination.page,
                         'cursor-default text-gray-400 bg-white': typeof page !== 'number'
-                    }"
-                    class="px-3 py-1 rounded-full text-sm font-semibold transition">
+                    }" class="px-3 py-1 rounded-full text-sm font-semibold transition">
                     {{ page }}
                 </button>
 
@@ -130,8 +127,6 @@ export default {
             searchQuery: '',
             screenHeight: window.innerHeight,
             dateRange: '',
-            minSelectableDate: null,
-            maxSelectableDate: null,
             flatpickrConfig: {
                 mode: "range",
                 dateFormat: "Y-m-d",
@@ -148,6 +143,19 @@ export default {
     watch: {
         screenHeight(newHeight) {
             this.updatePaginationLimit(newHeight);
+        },
+        searchQuery: {
+            handler() {
+                this.pagination.page = 1;
+            },
+            deep: false
+        },
+        dateRange: {
+            handler() {
+                this.pagination.page = 1;
+                this.fetchHistory(); 
+            },
+            deep: false
         }
     },
     computed: {
@@ -165,19 +173,6 @@ export default {
             const query = this.searchQuery.trim().toLowerCase();
             if (query) {
                 records = records.filter(r => r.plate && r.plate.toLowerCase().includes(query));
-            }
-
-            const [startDate, endDate] = this.parseDateRange();
-            if (startDate && endDate) {
-                const startTime = startDate.getTime();
-                const endTime = endDate.getTime();
-
-                records = records.filter(r => {
-                    if (!r.timeRaw) return false;
-                    const dt = new Date(r.timeRaw);
-                    if (isNaN(dt.getTime())) return false;
-                    return dt.getTime() >= startTime && dt.getTime() <= endTime;
-                });
             }
 
             records.sort((a, b) => {
@@ -246,20 +241,14 @@ export default {
         }
     },
     mounted() {
-        const today = new Date();
-        const oneYearAgo = new Date(today);
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        this.minSelectableDate = oneYearAgo.toISOString().split('T')[0];
-        this.maxSelectableDate = today.toISOString().split('T')[0];
-        this.flatpickrConfig.minDate = this.minSelectableDate;
-        this.flatpickrConfig.maxDate = this.maxSelectableDate;
-
-        if (!this.dateRange) {
-            this.dateRange = `${this.minSelectableDate} to ${this.maxSelectableDate}`;
-        }
-
         this.updatePaginationLimit(this.screenHeight);
+        
+        if (!this.dateRange) {
+            const today = new Date().toISOString().split('T')[0];
+            this.dateRange = `${today} to ${today}`;
+        }
         this.fetchHistory();
+
         window.addEventListener('resize', this.updateScreenHeight);
     },
     beforeDestroy() {
@@ -293,8 +282,17 @@ export default {
             this.loading = true;
 
             try {
-                const startRange = `${this.minSelectableDate} 00:00:00`;
-                const endRange = `${this.maxSelectableDate} 23:59:59`;
+                const [startDate, endDate] = this.parseDateRange();
+                
+                if (!startDate || !endDate) {
+                    this.allRecords = [];
+                    this.loading = false;
+                    return;
+                }
+
+                const startRange = this.formatDateForApi(startDate, true);
+                const endRange = this.formatDateForApi(endDate, false);
+                
                 const LARGE_LIMIT = 10000;
 
                 const response = await this.licensePlateService.getVehicleHistory(
@@ -343,7 +341,16 @@ export default {
             const day = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const year = d.getFullYear();
-            return `${day}/${month}/${year}`;
+            // const hour = String(d.getHours()).padStart(2, '0');
+            // const minute = String(d.getMinutes()).padStart(2, '0');
+            // const second = String(d.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year}`; 
+        },
+
+        formatDateForApi(dateObj, isStart) {
+            const date = dateObj.toISOString().split('T')[0];
+            const time = isStart ? '00:00:00' : '23:59:59';
+            return `${date} ${time}`;
         },
 
         updateScreenHeight() {
@@ -357,15 +364,8 @@ export default {
                 this.pagination.page = 1;
             }
         },
-
+        
         onSearchInput() {
-            this.pagination.page = 1;
-        },
-
-        onDateRangeChange(selectedDates, dateStr) {
-            if (dateStr !== undefined) {
-                this.dateRange = dateStr;
-            }
             this.pagination.page = 1;
         },
 
@@ -378,6 +378,16 @@ export default {
             const parts = this.dateRange.split(separator);
 
             if (parts.length !== 2) {
+                if (parts.length === 1 && parts[0]) {
+                    const singleDate = new Date(parts[0]);
+                    if (!isNaN(singleDate.getTime())) {
+                        const startDate = new Date(singleDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        const endDate = new Date(singleDate);
+                        endDate.setHours(23, 59, 59, 999);
+                        return [startDate, endDate];
+                    }
+                }
                 return [null, null];
             }
 

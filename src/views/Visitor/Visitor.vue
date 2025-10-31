@@ -24,7 +24,7 @@
                     class="p-2 border border-gray-300 rounded-lg w-1/2 min-w-0 focus:ring-orange-500 focus:border-orange-500 transition"
                     :class="{ 'border-orange-500 ring-1 ring-orange-500': !!dateRange }">
                 </flat-pickr>
-                </div>
+            </div>
             <table class="w-full text-left text-sm border-collapse shadow-sm rounded-xl overflow-hidden">
                 <thead>
                     <tr class="bg-gradient-to-r from-green-200 to-blue-200 text-green-900">
