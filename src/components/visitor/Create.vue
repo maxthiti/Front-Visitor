@@ -87,35 +87,22 @@ import { VisitorService } from '../../api/Visitor';
 import Swal from 'sweetalert2';
 import DatePicker from 'vue-datepicker-next';
 
-
-function formatDateTimeForApi(dateString, isEndDay = false) {
-    if (!dateString) return null;
-
-    // สร้าง Date object จาก string YYYY-MM-DD โดยจะเซ็ตเวลาเป็น 00:00:00 UTC/Local ขึ้นอยู่กับการตั้งค่าเบราว์เซอร์
-    const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-        console.error("Invalid date time format:", dateString);
-        return null;
-    }
-
-    // ตั้งเวลาให้เป็น 00:00:00 สำหรับวันเริ่มต้น
-    date.setHours(0, 0, 0, 0);
-
-    if (isEndDay) {
-        // สำหรับวันสิ้นสุด (วันออก) ให้ตั้งเวลาเป็น 23:59:59
-        date.setHours(23, 59, 59, 999);
-    }
-
-    return date.toISOString();
-}
-
 function formatDate(date) {
     if (!date || isNaN(date.getTime())) return '';
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+function formatInDateToApi(dateString) {
+    if (!dateString) return null;
+    return `${dateString}T00:00:00.000Z`;
+}
+
+function formatOutDateToApi(dateString) {
+    if (!dateString) return null;
+    return `${dateString}T17:00:00.000Z`;
 }
 
 export default {
@@ -222,8 +209,8 @@ export default {
                     licensePlate: this.form.plate,
                     licensePlateProvince: this.form.province,
                     guestName: this.form.guestName,
-                    start: formatDateTimeForApi(this.form.in, false),
-                    expire: formatDateTimeForApi(this.form.out, true),
+                    start: formatInDateToApi(this.form.in, false),
+                    expire: formatOutDateToApi(this.form.out, true),
                     vehicleType: this.form.vehicleType,
                     object: this.form.object,
                 };

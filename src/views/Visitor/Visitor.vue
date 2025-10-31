@@ -140,6 +140,8 @@ export default {
         filteredVisitors() {
             const q = this.searchQuery.trim().toLowerCase();
             const sel = this.selectedDate ? new Date(this.selectedDate) : null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
             const isSameDay = (dateA, dateB) => {
                 if (!dateA || !dateB) return false;
@@ -151,26 +153,40 @@ export default {
 
             let list = this.visitors.slice();
 
-            if (q) {
+            if (this.hasActiveFilters) {
+                // โหมดค้นหา/กรอง: กรองตามคำค้นหา
+                if (q) {
+                    list = list.filter(v => {
+                        return (v.plate && v.plate.toLowerCase().includes(q)) ||
+                            (v.guestName && v.guestName.toLowerCase().includes(q));
+                    });
+                }
+                // โหมดค้นหา/กรอง: กรองตามวันที่เลือก
+                if (sel) {
+                    list = list.filter(v => {
+                        return isSameDay(v.startRaw, sel) || isSameDay(v.expireRaw, sel);
+                    });
+                }
+            } else {
                 list = list.filter(v => {
-                    return (v.plate && v.plate.toLowerCase().includes(q)) ||
-                        (v.guestName && v.guestName.toLowerCase().includes(q));
-                });
-            }
-
-            if (sel) {
-                list = list.filter(v => {
-                    return isSameDay(v.startRaw, sel) || isSameDay(v.expireRaw, sel);
+                    return isSameDay(v.startRaw, today);
                 });
             }
 
             list.sort((a, b) => {
                 const da = new Date(a.startRaw || a.inRaw || 0).getTime();
                 const db = new Date(b.startRaw || b.inRaw || 0).getTime();
+                
                 return db - da;
             });
 
             this.pagination.total = list.length;
+            
+            const limit = this.isShortScreen ? 5 : 8;
+            const totalPages = Math.max(1, Math.ceil(list.length / limit));
+            if (this.pagination.page > totalPages) {
+                this.pagination.page = 1;
+            }
 
             return list;
         },
@@ -178,21 +194,18 @@ export default {
             const limit = this.isShortScreen ? 5 : 8;
             this.pagination.limit = limit;
 
-            if (!this.hasActiveFilters) {
-                return this.filteredVisitors.slice(0, limit);
-            }
-
             const start = (this.pagination.page - 1) * limit;
             return this.filteredVisitors.slice(start, start + limit);
         },
         totalPages() {
             const limit = this.isShortScreen ? 5 : 8;
             if (limit <= 0) return 1;
+
             return Math.max(1, Math.ceil(this.filteredVisitors.length / limit));
         },
         shouldShowPagination() {
             const limit = this.isShortScreen ? 5 : 8;
-            return this.hasActiveFilters && this.filteredVisitors.length > limit;
+            return this.filteredVisitors.length > limit;
         }
     },
     watch: {
@@ -320,8 +333,9 @@ export default {
         },
 
         changePage(newPage) {
-            if (!this.hasActiveFilters) return;
-            this.pagination.page = newPage;
+            if (newPage >= 1 && newPage <= this.totalPages) {
+                this.pagination.page = newPage;
+            }
         },
 
         updateScreenHeight() {
