@@ -17,7 +17,7 @@
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs text-gray-500 mb-1 whitespace-nowrap">ช่วงวันที่</label>
-                    <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="onDateRangeChange"
+                    <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="changePage(1)"
                         placeholder="เลือกวันที่"
                         class="border-gray-400 border-1 p-2 rounded max-w-[250px] bg-white text-gray-700" />
                 </div>
@@ -30,7 +30,6 @@
                         <th class="py-3 px-2">ทะเบียน</th>
                         <th class="py-3 px-2">รูป1</th>
                         <th class="py-3 px-2">รูป2</th>
-                        <th class="py-3 px-2">วันเวลา</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -42,7 +41,10 @@
 
                     <tr v-else v-for="(record, idx) in paginatedRecords" :key="idx"
                         class="border-b hover:bg-orange-50 transition duration-100">
-                        <td class="py-2 px-2 break-all max-w-plate">{{ record.plate }}</td>
+                        <td class="py-2 px-2 break-all max-w-plate">
+                            <div class="text-gray-700 font-semibold">{{ record.plate }}</div>
+                            <div class="text-xs text-gray-400 mt-1">{{ record.time }}</div>
+                        </td>
 
                         <td class="py-2 px-2">
                             <img :src="record.photo1" v-if="record.photo1" @click="showFullScreenImage(record.photo1)"
@@ -57,18 +59,16 @@
                                 alt="รูปภาพ 2">
                             <span v-else>-</span>
                         </td>
-
-                        <td class="py-2 px-2 ">{{ record.time }}</td>
                     </tr>
                     <tr v-if="!loading && licenseRecords.length === 0">
-                        <td colspan="4" class="py-4 text-center text-gray-500">
+                        <td colspan="3" class="py-4 text-center text-gray-500">
                             ไม่พบประวัติการเข้าออก
                         </td>
                     </tr>
                 </tbody>
             </table>
 
-            <div v-if="shouldShowPagination && !loading" class="flex justify-center items-center space-x-2 mt-4 pb-2">
+            <div v-if="!loading" class="flex justify-center items-center space-x-2 mt-4 pb-2">
 
                 <button :disabled="pagination.page === 1" @click="changePage(pagination.page - 1)"
                     :class="{ 'opacity-50 cursor-not-allowed': pagination.page === 1, 'hover:bg-orange-100': pagination.page > 1 }"
@@ -76,8 +76,14 @@
                     &lt; ก่อนหน้า
                 </button>
 
-                <button v-for="page in totalPages" :key="page" @click="changePage(page)"
-                    :class="{ 'bg-orange-600 text-white shadow-md': page === pagination.page, 'bg-white text-gray-700 hover:bg-orange-100': page !== pagination.page }"
+                <button v-for="(page, idx) in paginationLinks" :key="idx"
+                    @click="typeof page === 'number' && changePage(page)"
+                    :disabled="typeof page !== 'number'"
+                    :class="{
+                        'bg-orange-600 text-white shadow-md': page === pagination.page,
+                        'bg-white text-gray-700 hover:bg-orange-100': typeof page === 'number' && page !== pagination.page,
+                        'cursor-default text-gray-400 bg-white': typeof page !== 'number'
+                    }"
                     class="px-3 py-1 rounded-full text-sm font-semibold transition">
                     {{ page }}
                 </button>
@@ -134,6 +140,8 @@ export default {
             licenseRecords: [],
             screenHeight: window.innerHeight,
             dateRange: '',
+            minSelectableDate: null,
+            maxSelectableDate: null,
             flatpickrConfig: {
                 mode: "range",
                 dateFormat: "Y-m-d",
@@ -161,11 +169,62 @@ export default {
             if (this.pagination.limit <= 0) return 1;
             return Math.max(1, Math.ceil(this.pagination.total / this.pagination.limit));
         },
-        shouldShowPagination() {
-            return this.pagination.total > this.pagination.limit;
+        paginationLinks() {
+            const total = this.totalPages;
+            const current = this.pagination.page;
+
+            if (total <= 7) {
+                return Array.from({ length: total }, (_, i) => i + 1);
+            }
+
+            const pages = new Set([1, total]);
+            const neighbors = [current - 1, current, current + 1];
+            neighbors.forEach(page => {
+                if (page > 1 && page < total) {
+                    pages.add(page);
+                }
+            });
+
+            if (current <= 3) {
+                pages.add(2);
+                pages.add(3);
+                pages.add(4);
+            }
+
+            if (current >= total - 2) {
+                pages.add(total - 1);
+                pages.add(total - 2);
+                pages.add(total - 3);
+            }
+
+            const sortedPages = Array.from(pages).sort((a, b) => a - b);
+            const result = [];
+            let prev = null;
+
+            sortedPages.forEach(page => {
+                if (prev !== null && page - prev > 1) {
+                    if (page - prev === 2) {
+                        result.push(prev + 1);
+                    } else {
+                        result.push('...');
+                    }
+                }
+                result.push(page);
+                prev = page;
+            });
+
+            return result;
         }
     },
     mounted() {
+        const today = new Date();
+        const oneYearAgo = new Date(today);
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        this.minSelectableDate = oneYearAgo.toISOString().split('T')[0];
+        this.maxSelectableDate = today.toISOString().split('T')[0];
+        this.flatpickrConfig.minDate = this.minSelectableDate;
+        this.flatpickrConfig.maxDate = this.maxSelectableDate;
+
         if (!this.dateRange) {
             this.dateRange = `${this.getTodayStart().split(' ')[0]} to ${this.getTodayEnd().split(' ')[0]}`;
         }
@@ -229,10 +288,7 @@ export default {
 
                 const historyData = response.data || [];
 
-                const apiPagination = response.pagination || {};
-                this.pagination.total = typeof apiPagination.total === 'number'
-                    ? apiPagination.total
-                    : historyData.length;
+                this.pagination.total = response.pagination?.total || historyData.length;
 
                 const mappedRecords = historyData.map(r => ({
                     plate: r.plates && r.plates.length > 0 ? r.plates[0].License : 'ไม่พบทะเบียน',
@@ -241,22 +297,23 @@ export default {
                     time: this.formatDate(r.detectDate),
                 }));
 
+                if (this.pagination.page > this.totalPages) {
+                    this.pagination.page = this.totalPages;
+                    return this.fetchHistory();
+                }
+
                 this.licenseRecords = mappedRecords;
             } catch (error) {
                 console.error("Failed to fetch history:", error);
                 Swal.fire({
                     icon: 'error',
                     title: 'ดึงข้อมูลไม่สำเร็จ',
-                    text: 'ไม่สามารถโหลดรายการผู้มาเยือนได้ กรุณาลองใหม่อีกครั้ง'
+                    text: 'ไม่สามารถโหลดประวัติการเข้าออกได้ กรุณาลองใหม่อีกครั้ง'
                 });
                 this.licenseRecords = [];
             } finally {
                 this.loading = false;
             }
-        },
-
-        onDateRangeChange() {
-            this.changePage(1);
         },
 
         changePage(newPage) {

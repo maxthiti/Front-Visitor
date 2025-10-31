@@ -80,8 +80,13 @@
                     &lt; ก่อนหน้า
                 </button>
 
-                <button v-for="page in totalPages" :key="page" @click="changePage(page)"
-                    :class="{ 'bg-orange-600 text-white shadow-md': page === pagination.page, 'bg-white text-gray-700 hover:bg-orange-100': page !== pagination.page }"
+                <button v-for="(page, idx) in paginationLinks" :key="idx" @click="typeof page === 'number' && changePage(page)"
+                    :disabled="typeof page !== 'number'"
+                    :class="{
+                        'bg-orange-600 text-white shadow-md': page === pagination.page,
+                        'bg-white text-gray-700 hover:bg-orange-100': typeof page === 'number' && page !== pagination.page,
+                        'cursor-default text-gray-400 bg-white': typeof page !== 'number'
+                    }"
                     class="px-3 py-1 rounded-full text-sm font-semibold transition">
                     {{ page }}
                 </button>
@@ -231,6 +236,52 @@ export default {
         shouldShowPagination() {
             const limit = this.isShortScreen ? 5 : 8;
             return this.filteredVisitors.length > limit;
+        },
+        paginationLinks() {
+            const total = this.totalPages;
+            const current = this.pagination.page;
+
+            if (total <= 7) {
+                return Array.from({ length: total }, (_, i) => i + 1);
+            }
+
+            const pages = new Set([1, total]);
+            const neighbors = [current - 1, current, current + 1];
+            neighbors.forEach(page => {
+                if (page > 1 && page < total) {
+                    pages.add(page);
+                }
+            });
+
+            if (current <= 3) {
+                pages.add(2);
+                pages.add(3);
+                pages.add(4);
+            }
+
+            if (current >= total - 2) {
+                pages.add(total - 1);
+                pages.add(total - 2);
+                pages.add(total - 3);
+            }
+
+            const sortedPages = Array.from(pages).sort((a, b) => a - b);
+            const result = [];
+            let prev = null;
+
+            sortedPages.forEach(page => {
+                if (prev !== null && page - prev > 1) {
+                    if (page - prev === 2) {
+                        result.push(prev + 1);
+                    } else {
+                        result.push('...');
+                    }
+                }
+                result.push(page);
+                prev = page;
+            });
+
+            return result;
         }
     },
     watch: {

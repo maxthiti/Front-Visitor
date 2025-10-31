@@ -227,8 +227,18 @@ export default {
                     throw new Error('บันทึกทะเบียนรถไม่สำเร็จ หรือไม่ได้รับ ID จาก API')
                 }
             } catch (err) {
-                const errorMessage = err?.message || err?.error || err?.data?.message || 'บันทึกไม่สำเร็จ เนื่องจากเกิดข้อผิดพลาดในการเชื่อมต่อหรือข้อมูล'
-                await Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: errorMessage })
+                let errorMessage;
+                if (err.response?.data?.error === "this license is the member") {
+                    errorMessage = 'ป้ายทะเบียนนี้เป็นป้ายทะเบียนของลูกบ้าน';
+                } else {
+                    errorMessage = err.message || err.response?.data?.message || 'บันทึกไม่สำเร็จ เนื่องจากเกิดข้อผิดพลาดในการเชื่อมต่อหรือข้อมูล';
+                }
+
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: errorMessage,
+                });
             } finally {
                 this.loading = false;
             }
