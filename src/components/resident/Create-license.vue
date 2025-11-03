@@ -228,7 +228,7 @@ export default {
             } catch (err) {
                 let errorMessage;
                 if (err.res?.data?.error === "this license is the member") {
-                    errorMessage = 'ป้ายทะเบียนนี้เป็นป้ายทะเบียนของลูกบ้าน';
+                    errorMessage = 'ป้ายทะเบียนนี้เป็นป้ายทะเบียนของลูกบ้านแล้ว';
                 } else {
                     errorMessage = err.message || err.res?.data?.message || 'บันทึกไม่สำเร็จ เนื่องจากเกิดข้อผิดพลาดในการเชื่อมต่อหรือข้อมูล';
                 }

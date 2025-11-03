@@ -16,10 +16,7 @@
                     @input="onSearchInput"
                     class="p-2 border border-gray-300 rounded-lg min-w-0 focus:ring-green-500 focus:border-green-500 transition"
                     :class="{ 'border-green-500 ring-1 ring-green-500': searchQuery }">
-                <flat-pickr 
-                    v-model="dateRange"
-                    :config="flatpickrConfig"
-                    @on-change="onDateChange"
+                <flat-pickr v-model="dateRange" :config="flatpickrConfig" @on-change="onDateChange"
                     placeholder="เลือกช่วงวันที่"
                     class="p-2 border border-gray-300 rounded-lg w-1/2 min-w-0 focus:ring-green-500 focus:border-green-500 transition"
                     :class="{ 'border-green-500 ring-1 ring-green-500': !!dateRange }">
@@ -80,14 +77,12 @@
                     &lt; ก่อนหน้า
                 </button>
 
-                <button v-for="(page, idx) in paginationLinks" :key="idx" @click="typeof page === 'number' && changePage(page)"
-                    :disabled="typeof page !== 'number'"
-                    :class="{
+                <button v-for="(page, idx) in paginationLinks" :key="idx"
+                    @click="typeof page === 'number' && changePage(page)" :disabled="typeof page !== 'number'" :class="{
                         'bg-green-600 text-white shadow-md': page === pagination.page,
                         'bg-white text-gray-700 hover:bg-green-100': typeof page === 'number' && page !== pagination.page,
                         'cursor-default text-gray-400 bg-white': typeof page !== 'number'
-                    }"
-                    class="px-3 py-1 rounded-full text-sm font-semibold transition">
+                    }" class="px-3 py-1 rounded-full text-sm font-semibold transition">
                     {{ page }}
                 </button>
 
@@ -157,22 +152,22 @@ export default {
         },
         filteredVisitors() {
             const q = this.searchQuery.trim().toLowerCase();
-            
+
             const [startDate, endDate] = this.parseDateRange();
 
             const isInDateRange = (visitorStartRaw, visitorExpireRaw, startFilter, endFilter) => {
                 if (!startFilter || !endFilter) return false;
-                
+
                 const vStart = new Date(visitorStartRaw);
                 const vExpire = new Date(visitorExpireRaw);
-                
+
                 const filterStart = new Date(startFilter);
                 filterStart.setHours(0, 0, 0, 0);
                 const filterEnd = new Date(endFilter);
                 filterEnd.setHours(23, 59, 59, 999);
-                
-                const isVisitorValid = 
-                    vStart.getTime() <= filterEnd.getTime() && 
+
+                const isVisitorValid =
+                    vStart.getTime() <= filterEnd.getTime() &&
                     vExpire.getTime() >= filterStart.getTime();
 
                 return isVisitorValid;
@@ -191,13 +186,13 @@ export default {
                 list = list.filter(v => {
                     return isInDateRange(v.startRaw, v.expireRaw, startDate, endDate);
                 });
-            } 
-            
+            }
+
             else if (!this.hasActiveFilters) {
                 const today = new Date();
                 const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
                 const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                
+
                 list = list.filter(v => {
                     return isInDateRange(v.startRaw, v.expireRaw, currentMonthStart, currentMonthEnd);
                 });
@@ -206,13 +201,13 @@ export default {
             list.sort((a, b) => {
                 const da = new Date(a.startRaw || a.inRaw || 0).getTime();
                 const db = new Date(b.startRaw || b.inRaw || 0).getTime();
-                
+
                 return db - da;
             });
 
             this.pagination.total = list.length;
-            
-            const limit = this.isShortScreen ? 5 : 8;
+
+            const limit = this.isShortScreen ? 4 : 8;
             const totalPages = Math.max(1, Math.ceil(list.length / limit));
             if (this.pagination.page > totalPages) {
                 this.pagination.page = 1;
@@ -221,48 +216,44 @@ export default {
             return list;
         },
         paginatedVisitors() {
-            const limit = this.isShortScreen ? 5 : 8;
+            const limit = this.isShortScreen ? 4 : 8;
             this.pagination.limit = limit;
 
             const start = (this.pagination.page - 1) * limit;
             return this.filteredVisitors.slice(start, start + limit);
         },
         totalPages() {
-            const limit = this.isShortScreen ? 5 : 8;
+            const limit = this.isShortScreen ? 4 : 8;
             if (limit <= 0) return 1;
 
             return Math.max(1, Math.ceil(this.filteredVisitors.length / limit));
         },
         shouldShowPagination() {
-            const limit = this.isShortScreen ? 5 : 8;
+            const limit = this.isShortScreen ? 4 : 8;
             return this.filteredVisitors.length > limit;
         },
         paginationLinks() {
             const total = this.totalPages;
             const current = this.pagination.page;
-
-            if (total <= 7) {
+            const maxCore = 3;
+            if (total <= maxCore) {
                 return Array.from({ length: total }, (_, i) => i + 1);
             }
 
             const pages = new Set([1, total]);
-            const neighbors = [current - 1, current, current + 1];
-            neighbors.forEach(page => {
-                if (page > 1 && page < total) {
-                    pages.add(page);
-                }
-            });
 
-            if (current <= 3) {
+            if (current <= 2) {
                 pages.add(2);
                 pages.add(3);
-                pages.add(4);
             }
-
-            if (current >= total - 2) {
-                pages.add(total - 1);
+            else if (current >= total - 1) {
                 pages.add(total - 2);
-                pages.add(total - 3);
+                pages.add(total - 1);
+            }
+            else {
+                pages.add(current - 1);
+                pages.add(current);
+                pages.add(current + 1);
             }
 
             const sortedPages = Array.from(pages).sort((a, b) => a - b);
@@ -271,11 +262,7 @@ export default {
 
             sortedPages.forEach(page => {
                 if (prev !== null && page - prev > 1) {
-                    if (page - prev === 2) {
-                        result.push(prev + 1);
-                    } else {
-                        result.push('...');
-                    }
+                    result.push('...');
                 }
                 result.push(page);
                 prev = page;
@@ -293,7 +280,7 @@ export default {
         this.updatePaginationLimit(this.screenHeight);
 
         window.addEventListener('resize', this.updateScreenHeight);
-        
+
         this.fetchVisitors();
     },
     beforeUnmount() {
@@ -337,7 +324,7 @@ export default {
                 this.loading = false;
             }
         },
-        
+
         parseDateRange() {
             if (!this.dateRange) {
                 return [null, null];

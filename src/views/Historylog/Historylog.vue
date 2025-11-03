@@ -10,8 +10,7 @@
                     class="p-2 border border-gray-300 rounded-lg min-w-0 w-full focus:ring-green-500 focus:border-green-500 transition"
                     :class="{ 'border-green-500 ring-1 ring-green-500': searchQuery }">
 
-                <flat-pickr v-model="dateRange" :config="flatpickrConfig"
-                    placeholder="เลือกช่วงวันที่"
+                <flat-pickr v-model="dateRange" :config="flatpickrConfig" placeholder="เลือกช่วงวันที่"
                     class="p-2 border border-3 border-gray-300 rounded-lg min-w-0 w-full focus:ring-green-500 focus:border-green-500 transition"
                     :class="{ 'border-green-500 ring-1 ring-green-500': !!dateRange }">
                 </flat-pickr>
@@ -153,7 +152,7 @@ export default {
         dateRange: {
             handler() {
                 this.pagination.page = 1;
-                this.fetchHistory(); 
+                this.fetchHistory();
             },
             deep: false
         }
@@ -174,7 +173,7 @@ export default {
             if (query) {
                 records = records.filter(r => r.plate && r.plate.toLowerCase().includes(query));
             }
-            
+
             records.sort((a, b) => {
                 const aTime = a.timeRaw ? new Date(a.timeRaw).getTime() : 0;
                 const bTime = b.timeRaw ? new Date(b.timeRaw).getTime() : 0;
@@ -196,28 +195,28 @@ export default {
         paginationLinks() {
             const total = this.totalPages;
             const current = this.pagination.page;
-            const maxVisiblePages = 5;
+            const maxVisiblePages = 3;
 
-            if (total <= maxVisiblePages + 2) { 
+            if (total <= maxVisiblePages) {
                 return Array.from({ length: total }, (_, i) => i + 1);
             }
 
             const pages = new Set();
-            pages.add(1); 
-            pages.add(total); 
+            pages.add(1);
+            pages.add(total);
 
             for (let i = current - 1; i <= current + 1; i++) {
                 if (i > 1 && i < total) {
                     pages.add(i);
                 }
             }
-            
+
             if (current <= 3) {
                 pages.add(2);
                 pages.add(3);
                 pages.add(4);
-            } 
-            
+            }
+
             if (current >= total - 2) {
                 pages.add(total - 3);
                 pages.add(total - 2);
@@ -230,7 +229,7 @@ export default {
 
             sortedPages.forEach(page => {
                 if (prev !== null && page - prev > 1) {
-                    result.push('...'); 
+                    result.push('...');
                 }
                 result.push(page);
                 prev = page;
@@ -241,12 +240,12 @@ export default {
     },
     mounted() {
         this.updatePaginationLimit(this.screenHeight);
-        
+
         if (!this.dateRange) {
             const today = new Date().toISOString().split('T')[0];
             this.dateRange = `${today} to ${today}`;
         }
-        this.fetchHistory(); 
+        this.fetchHistory();
 
         window.addEventListener('resize', this.updateScreenHeight);
     },
@@ -282,7 +281,7 @@ export default {
 
             try {
                 const [startDate, endDate] = this.parseDateRange();
-                
+
                 if (!startDate || !endDate) {
                     this.allRecords = [];
                     this.loading = false;
@@ -291,7 +290,7 @@ export default {
 
                 const startRange = this.formatDateForApi(startDate, true);
                 const endRange = this.formatDateForApi(endDate, false);
-                
+
                 const LARGE_LIMIT = 10000;
 
                 const response = await this.licensePlateService.getVehicleHistory(
@@ -343,7 +342,7 @@ export default {
             const hour = String(d.getHours()).padStart(2, '0');
             const minute = String(d.getMinutes()).padStart(2, '0');
             const second = String(d.getSeconds()).padStart(2, '0');
-            return `${day}/${month}/${year}<br>${hour}:${minute}:${second}`; 
+            return `${day}/${month}/${year}<br>${hour}:${minute}:${second}`;
         },
 
         formatDateForApi(dateObj, isStart) {
@@ -363,7 +362,7 @@ export default {
                 this.pagination.page = 1;
             }
         },
-        
+
         onSearchInput() {
             this.pagination.page = 1;
         },
